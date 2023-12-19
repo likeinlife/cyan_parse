@@ -1,12 +1,7 @@
 import csv
 from pathlib import Path
 
-
-def parse(path_to_file: Path):
-    with open(path_to_file, "r", encoding="UTF-8") as file_obj:
-        reader = csv.DictReader(file_obj, delimiter=";")
-        for i in reader:
-            print(i)
+from .config import CYAN_FILENAME, CYAN_TRANSFORMED_FILENAME
 
 
 def clear_room_count(room_count_string: str | None) -> int | None:
@@ -65,9 +60,7 @@ def reformat_csv(old_path: Path, new_path: Path):
 
 
 def main():
-    old_path = Path("Cyan.csv")
-    new_path = Path("Cyan-upd.csv")
-    reformat_csv(old_path, new_path)
+    reformat_csv(CYAN_FILENAME, CYAN_TRANSFORMED_FILENAME)
 
 
 if __name__ == "__main__":

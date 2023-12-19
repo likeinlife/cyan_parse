@@ -3,10 +3,20 @@ import logging
 import time
 import unicodedata
 from pathlib import Path
-from typing import Any
 
 import requests
-from pydantic import BaseModel, TypeAdapter
+from pydantic import TypeAdapter
+
+from config import (
+    CYAN_ARCHIVE_FILENAME,
+    CYAN_TRANSFORMED_FILENAME,
+    LOGGING_LEVEL,
+    MAX_ADS,
+    MAX_ADS_PER_HOUSE,
+    NEEDED_MONTH,
+    NEEDED_YEAR,
+)
+from models import HouseInfo, InitialHouseInfo, Offer, TransformedOffer
 
 BASE_URL = (
     "https://api.cian.ru/valuation-offer-history/v4/get-house-offer-history-desktop/"
@@ -14,48 +24,9 @@ BASE_URL = (
 
 logging.basicConfig(
     format="%(levelname)s :: %(asctime)s :(%(funcName)s) %(message)s",
-    level=logging.INFO,
+    level=LOGGING_LEVEL,
 )
 logger = logging.getLogger(__name__)
-
-
-class Price(BaseModel):
-    price: str
-
-
-class Offer(BaseModel):
-    id: int
-    title: str
-    prices: Price
-    dateStart: str
-    dateEnd: str | None = None
-    previewPhoto: str | None = None
-    link: str | None = None
-
-
-class HouseInfo(BaseModel):
-    totalCount: int
-    roomCounts: list[Any]
-    statusCounts: list[Any]
-    locations: list[Any]
-    offers: list[Offer]
-
-
-class InitialHouseInfo(BaseModel):
-    id: int
-    address: str
-    house: str | None
-
-
-class TransformedOffer(BaseModel):
-    id: int
-    price: int
-    area: float
-    room_count: int
-    floor_number: str
-    address: str
-    house: str | None
-    link: str | None
 
 
 def get_content_by_id(ad_id: int):
@@ -133,7 +104,6 @@ def parse_old_ads(
         csv_writer.writeheader()
         for init_info in initial_list:
             house_counter = 0
-            MAX_HOUSE_COUNTER = 4
             offer = get_content_by_id(init_info.id)
             for offer in offer.offers:
                 if not filter_dateStart(
@@ -147,9 +117,9 @@ def parse_old_ads(
                 house_counter += 1
                 counter += 1
                 logger.info("CSV: write row %d %s" % (counter, offer.id))
-                if house_counter > MAX_HOUSE_COUNTER:
+                if house_counter > MAX_ADS_PER_HOUSE:
                     break
-            if counter > 50:
+            if counter > MAX_ADS:
                 print("SUCCESS")
                 break
             time.sleep(5)
@@ -162,16 +132,12 @@ def parse_csv(file_path: Path) -> list[InitialHouseInfo]:
 
 
 def main():
-    file_path = Path("Cyan-upd.csv")
-    content = parse_csv(file_path)
-    new_csv_path = Path("csv-cyan-transformed1.csv")
-    needed_month = ["апр", "май", "июн", "июл", "авг", "сен"]
-    needed_year = ["2023"]
+    content = parse_csv(CYAN_TRANSFORMED_FILENAME)
     parse_old_ads(
-        csv_path=new_csv_path,
+        csv_path=CYAN_ARCHIVE_FILENAME,
         initial_list=content,
-        needed_month=needed_month,
-        needed_year=needed_year,
+        needed_month=NEEDED_MONTH,
+        needed_year=NEEDED_YEAR,
     )
 
 
